@@ -33,39 +33,99 @@ def count():
 ######################################################################
 # GET ALL PICTURES
 ######################################################################
+
 @app.route("/picture", methods=["GET"])
 def get_pictures():
-    pass
+    return jsonify(data), 200
+
 
 ######################################################################
 # GET A PICTURE
 ######################################################################
 
-
 @app.route("/picture/<int:id>", methods=["GET"])
 def get_picture_by_id(id):
-    pass
+    """Return a picture by its ID"""
+    picture = next((item for item in data if item["id"] == id), None)
+    if picture:
+        return jsonify(picture), 200
+    return {"message": f"Picture with id {id} not found"}, 404
 
 
 ######################################################################
 # CREATE A PICTURE
 ######################################################################
+
 @app.route("/picture", methods=["POST"])
 def create_picture():
-    pass
+    """Create a new picture"""
+    picture = request.get_json()
+    if not picture or "id" not in picture:
+        return {"message": "Invalid input, 'id' is required"}, 400
+
+    # Check if ID already exists
+    if any(item["id"] == picture["id"] for item in data):
+        return {"message": f"picture with id {picture['id']} already present"}, 422
+
+    # Append new picture to data
+    data.append(picture)
+    
+    # Save updated data to JSON file
+    try:
+        with open(json_url, "w") as f:
+            json.dump(data, f, indent=2)
+        return jsonify(picture), 201
+    except Exception:
+        return {"message": "Internal server error"}, 500
+
 
 ######################################################################
 # UPDATE A PICTURE
 ######################################################################
 
-
 @app.route("/picture/<int:id>", methods=["PUT"])
 def update_picture(id):
-    pass
+    """Update a picture by its ID"""
+    picture = next((item for item in data if item["id"] == id), None)
+    if not picture:
+        return {"message": f"Picture with id {id} not found"}, 404
+
+    updated_picture = request.get_json()
+    if not updated_picture:
+        return {"message": "Invalid input"}, 400
+
+    # Update the picture (preserve the ID)
+    updated_picture["id"] = id
+    picture.update(updated_picture)
+    
+    # Save updated data to JSON file
+    try:
+        with open(json_url, "w") as f:
+            json.dump(data, f, indent=2)
+        return jsonify(picture), 200
+    except Exception:
+        return {"message": "Internal server error"}, 500
+
 
 ######################################################################
 # DELETE A PICTURE
 ######################################################################
+
 @app.route("/picture/<int:id>", methods=["DELETE"])
 def delete_picture(id):
-    pass
+    """Delete a picture by its ID"""
+    global data
+    picture = next((item for item in data if item["id"] == id), None)
+    if not picture:
+        return {"message": f"Picture with id {id} not found"}, 404
+
+    # Remove the picture from data
+    data = [item for item in data if item["id"] != id]
+    
+    # Save updated data to JSON file
+    try:
+        with open(json_url, "w") as f:
+            json.dump(data, f, indent=2)
+        return {}, 204  # 204 typically has no body
+    except Exception:
+        return {"message": "Internal server error"}, 500
